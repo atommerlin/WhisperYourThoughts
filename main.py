@@ -32,7 +32,7 @@ class WhisperYourThoughts:
     def __init__(self):
         # Choose a second key of your choice, for example "alt" "space" "y"
         # Default: ctrl+"alt"
-        self.second_key = "right shift"
+        self.second_key = "alt"
 
         # choose model: "tiny, base, small, medium, large"
         # But you need a corresponding VRAM on your GPU. small needs for example at least 2GB
