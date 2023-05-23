@@ -5,6 +5,8 @@ import keyboard
 import threading
 import whisper
 
+DEFAULT_HOTKEY = 'alt'
+
 print("Loading...")
 
 class WhisperYourThoughts:
@@ -29,10 +31,10 @@ class WhisperYourThoughts:
     '''The data recorded.'''
     data = None
 
-    def __init__(self):
+    def __init__(self, hotkey):
         # Choose a second key of your choice, for example "alt" "space" "y"
         # Default: ctrl+"alt"
-        self.second_key = "alt"
+        self.second_key = hotkey
 
         # choose model: "tiny, base, small, medium, large"
         # But you need a corresponding VRAM on your GPU. small needs for example at least 2GB
@@ -83,15 +85,19 @@ class WhisperYourThoughts:
         self.current += 1
 
     def recorder(self, index):
-        print(f"start transcribing recording {index}...")
-        try:
-            result = self.model.transcribe(f"output_{index}.wav", fp16=False)
-            text = result["text"][1:]
-            # In my version, result["text"] always outputs a whitespace beforehand, like: result["text"] = " hallo world"
-            print(f"recording {index}: {text}")
-            keyboard.write(text)
-        except Exception as e:
-            print(f"Error while transcribing recording {index}: {e}")
+        retries = 1
+        while retries >= 0:
+            print(f"start transcribing recording {index} (run #{2 - retries})...")
+            try:
+                result = self.model.transcribe(f"output_{index}.wav", fp16=False)
+                text = result["text"][1:]
+                # In my version, result["text"] always outputs a whitespace beforehand, like: result["text"] = " hallo world"
+                print(f"recording {index}: {text}")
+                keyboard.write(text)
+                return
+            except Exception as e:
+                print(f"Error while transcribing recording {index}: {e}")
+                retries -= 1
 
     def register_keys(self): 
         print(f"Press {self.second_key} to start recording")
@@ -107,14 +113,22 @@ class WhisperYourThoughts:
         if self.key_thread is not None:
             self.key_thread.join(timeout=timeout)
 
-whisperYourThoughts = WhisperYourThoughts()
-whisperYourThoughts.initHotKeyThreading()
 
-alive = True
-print('finished loading, main loop started...')
-while alive:
-    try:
-        whisperYourThoughts.putInMainLoop(1)
-    except KeyboardInterrupt:
-        print("Bye")
-        alive = False
+if __name__ == '__main__':
+    # read hotkey from command line args
+    import sys
+    hotkey = DEFAULT_HOTKEY
+    if len(sys.argv) > 1:
+        hotkey = " ".join(sys.argv[1:])
+
+    whisperYourThoughts = WhisperYourThoughts(hotkey)
+    whisperYourThoughts.initHotKeyThreading()
+
+    alive = True
+    print('ready')
+    while alive:
+        try:
+            whisperYourThoughts.putInMainLoop(1)
+        except KeyboardInterrupt:
+            print("Bye")
+            alive = False
